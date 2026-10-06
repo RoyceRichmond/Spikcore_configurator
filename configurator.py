@@ -15,10 +15,6 @@ class MosbiusMatrixConfigurator:
         # 0 = Abierto (Blanco)
         self.matrix = [[0 for _ in range(self.COLS)] for _ in range(self.ROWS)]
         self.buttons = [[None for _ in range(self.COLS)] for _ in range(self.ROWS)]
-        self.button_vars = [
-            [tk.IntVar(value=0) for _ in range(self.COLS)]
-            for _ in range(self.ROWS)
-        ]
 
         self._build_ui()
         self.update_bitstream()
@@ -49,27 +45,20 @@ class MosbiusMatrixConfigurator:
         for c in range(self.COLS):
             ttk.Label(matrix_frame, text=f"C{c}", font=("Consolas", 10, "bold")).grid(row=0, column=c+1, padx=3, pady=4)
 
-        # Celdas con estado persistente: seleccionada = conectada (rojo).
+        # Celdas circulares con estado persistente: conectada = rojo.
         for r in range(self.ROWS):
             ttk.Label(matrix_frame, text=f"R{r:02d}", font=("Consolas", 9, "bold")).grid(row=r+1, column=0, padx=6, pady=2)
             for c in range(self.COLS):
-                btn = tk.Checkbutton(
+                btn = tk.Canvas(
                     matrix_frame,
-                    text="",
-                    width=1,
-                    height=1,
-                    indicatoron=False,
-                    relief="solid",
-                    bd=1,
-                    bg="#FFFFFF",
-                    selectcolor="#FF0702",
-                    activebackground="#FF0400",
+                    width=18,
+                    height=18,
+                    highlightthickness=0,
+                    bd=0,
                     cursor="hand2",
-                    variable=self.button_vars[r][c],
-                    onvalue=1,
-                    offvalue=0,
-                    command=lambda row=r, col=c: self.update_cell_from_button(row, col)
                 )
+                btn.create_oval(2, 2, 16, 16, fill="#FFFFFF", outline="#555555", width=1)
+                btn.bind("<Button-1>", lambda event, row=r, col=c: self.toggle_cell(row, col))
                 btn.grid(row=r+1, column=c+1, padx=2, pady=2)
                 self.buttons[r][c] = btn
 
@@ -102,20 +91,15 @@ class MosbiusMatrixConfigurator:
         self.root.bind_all("<Button-4>", lambda event: main_canvas.yview_scroll(-1, "units"))
         self.root.bind_all("<Button-5>", lambda event: main_canvas.yview_scroll(1, "units"))
 
-    def update_cell_from_button(self, row, col):
-        self.matrix[row][col] = self.button_vars[row][col].get()
+    def toggle_cell(self, row, col):
+        self.matrix[row][col] = 1 - self.matrix[row][col]
         self._update_button_color(row, col)
         self.update_bitstream()
 
     def _update_button_color(self, row, col):
         value = self.matrix[row][col]
         color = "#FF0702" if value else "#FFFFFF"
-        self.button_vars[row][col].set(value)
-        self.buttons[row][col].config(
-            bg=color,
-            activebackground=color,
-            selectcolor=color,
-        )
+        self.buttons[row][col].itemconfig(1, fill=color)
 
     def update_bitstream(self):
         bits = []

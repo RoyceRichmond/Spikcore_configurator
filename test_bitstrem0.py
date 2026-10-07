@@ -1,14 +1,27 @@
 from machine import Pin
 from time import sleep_us, sleep_ms
-
-variable ="57783543305cc91547b9b3569cc894ce5625ef364c18c4fb2745e2500174"
-
-
-#****
-
 import array, time
-from machine import Pin
 import rp2
+
+# -----------------------------
+# ENTRADA DINÁMICA DESDE LA COMPUTADORA (REPL)
+# -----------------------------
+print("----------------------------------------")
+print("Esperando valor hexadecimal de 240 bits...")
+print("----------------------------------------")
+
+# input() detiene la ejecución hasta que escribas/pegues el string desde la PC
+variable = input("Ingresa el string hex (60 caracteres): ").strip()
+
+# Validamos que tenga exactamente 60 caracteres (240 bits)
+if len(variable) != 60:
+    print("¡Advertencia! El valor no mide 60 caracteres. Asegúrate de que sean 240 bits.")
+
+# Convertimos a bytes dinámicamente
+variable_bytes = bytes.fromhex(variable)
+print("¡Valor cargado y convertido a bytes con éxito!\n")
+
+
 
 # Configure the number of WS2812 LEDs, pins and brightness.
 NUM_LEDS = 1
@@ -183,7 +196,6 @@ status_led.value(1)
 enable.value(0)
 
 bit_stream_transmitted=0
-variable_bytes = bytes.fromhex(variable)
 while True:
     start_current = start.value()
     if start_previous == 1 and start_current == 0:

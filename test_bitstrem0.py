@@ -1,6 +1,9 @@
 from machine import Pin
 from time import sleep_us, sleep_ms
 
+variable ="57783543305cc91547b9b3569cc894ce5625ef364c18c4fb2745e2500174"
+
+
 #****
 
 import array, time
@@ -72,7 +75,7 @@ START_PIN=7
 
 # Periodo completo del reloj en microsegundos
 # Ejemplo: 10 us = 100 kHz
-CLK_PERIOD_US = 10000
+CLK_PERIOD_US = 100000
 
 NUMBER_OF_BITS = 240
 
@@ -130,6 +133,43 @@ def send_zero_bitstream():
         sleep_us(half_period_us)
 
 
+def send_bitstream(data_bytes):
+    """
+    Envía un bitstream de 240 bits (30 bytes) bit a bit.
+    
+    data_bytes: objeto bytes de 30 posiciones.
+    """
+    half_period_us = CLK_PERIOD_US // 2
+    if half_period_us < 1:
+        half_period_us = 1
+
+    # Recorremos los 240 bits
+    for i in range(NUMBER_OF_BITS):
+        # 1. Calcular qué byte y qué bit dentro de ese byte nos toca
+        byte_idx = i // 8
+        bit_idx = 7 - (i % 8)  # Orden MSB primero (bit más significativo primero)
+        
+        # 2. Extraer el valor del bit (0 o 1)
+        current_bit = (data_bytes[byte_idx] >> bit_idx) & 1
+        
+        # 3. Asignar el bit a la línea de datos
+        data.value(current_bit)
+        status_led.value(current_bit)
+
+        # Flanco de subida del reloj
+        clk.value(1)
+        pixels_fill(RED)
+        pixels_show()
+
+        sleep_us(half_period_us)
+
+        # Flanco de bajada del reloj
+        clk.value(0)
+        pixels_fill(BLACK)
+        pixels_show()
+        
+        sleep_us(half_period_us)
+
 # -----------------------------
 # Programa principal
 # -----------------------------
@@ -143,13 +183,15 @@ status_led.value(1)
 enable.value(0)
 
 bit_stream_transmitted=0
+variable_bytes = bytes.fromhex(variable)
 while True:
     start_current = start.value()
     if start_previous == 1 and start_current == 0:
         sleep_ms(DEBOUNCE_MS)
         enable.value(0)        
         status_led.value(0)
-        send_zero_bitstream()
+        #send_zero_bitstream()
+        send_bitstream(variable_bytes)
         status_led.value(1)
         bit_stream_transmitted=1
 

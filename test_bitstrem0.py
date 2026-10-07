@@ -195,24 +195,46 @@ start_previous = 1
 status_led.value(1)
 enable.value(0)
 
-bit_stream_transmitted=0
+bit_stream_transmitted = 0
+
 while True:
-    start_current = start.value()
-    if start_previous == 1 and start_current == 0:
+    print("\n--- MENÚ DE CONTROL ---")
+    print("P - Programar y enviar bitstream")
+    print("L - Activar Latch-up (Verde)")
+    
+    # input() detiene el bucle automáticamente hasta que escribas algo en la PC
+    choice = input("Elige una opción (P / L): ").strip().upper()
+    
+    # Asignamos el valor de current según la letra elegida
+    if choice == "P":
+        current = 1
+    elif choice == "L":
+        current = 2
+    else:
+        print("Opción inválida. Usa 'P' o 'L'.")
+        continue  # Vuelve al inicio del while sin hacer nada más
+
+    # Lógica para la opción 'P' (Programación)
+    if current == 1:
         sleep_ms(DEBOUNCE_MS)
         enable.value(0)        
         status_led.value(0)
-        #send_zero_bitstream()
+        
+        # Enviar el bitstream usando los bytes de la variable ingresada al inicio
         send_bitstream(variable_bytes)
+        
         status_led.value(1)
-        bit_stream_transmitted=1
+        bit_stream_transmitted = 1
+        print("¡Bitstream enviado con éxito!")
 
-    if bit_stream_transmitted == 1 and latchup_previous == 1 and latchup.value() == 0:
+    # Lógica para la opción 'L' (Latch-up)
+    elif bit_stream_transmitted == 1 and current == 2:
         sleep_ms(DEBOUNCE_MS)
         enable.value(1)
         pixels_fill(GREEN)
         pixels_show()
-
-    latchup_previous = latchup.value()
-    start_previous = start.value()
-    sleep_ms(1)
+        print("¡Latch-up activado y LEDs en verde!")
+        
+    else:
+        if current == 2 and bit_stream_transmitted == 0:
+            print("⚠️ Primero debes enviar el bitstream ('P') antes de hacer Latch-up ('L').")

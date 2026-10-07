@@ -3,6 +3,17 @@ from time import sleep_us, sleep_ms
 import array, time
 import rp2
 
+# -----------------------------
+# MENÚ DE INICIO / TÍTULO
+# -----------------------------
+print("\n" + "="*45)
+print("     Spikcore Programming Terminal     ")
+print("="*45)
+print(" /\\_/\\")
+print("( o.o )  <- ¡Haku el Guardián del Código!")
+print(" > ^ <")
+
+
 # Configure the number of WS2812 LEDs, pins and brightness.
 NUM_LEDS = 1
 PIN_NUM = 23
@@ -151,6 +162,7 @@ while True:
     choice = input("Elige una opción (R / P / L): ").strip().upper()
     
     if choice == "R":
+        enable.value(0)
         pixels_fill(BLACK)
         pixels_show()
         print("\n----------------------------------------")

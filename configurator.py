@@ -69,6 +69,7 @@ class MosbiusMatrixConfigurator:
         ttk.Button(control_frame, text="Limpiar Todo (Todo en 0 / Blanco)", command=self.clear_all).pack(side="left", padx=6)
         ttk.Button(control_frame, text="Conectar Todo (Todo en 1 / Rojo)", command=self.fill_all).pack(side="left", padx=6)
         ttk.Button(control_frame, text="Copiar Bitstream", command=self.copy_bitstream).pack(side="right", padx=6)
+        ttk.Button(control_frame, text="Copiar Hexadecimal", command=self.copy_hexstream).pack(side="right", padx=6)
 
         # Contenedor inferior para el Bitstream resultante
         output_frame = ttk.LabelFrame(scrollable_frame, text="Bitstream Generado (240 bits: 1=Conectado/Rojo, 0=Abierto/Blanco)")
@@ -81,7 +82,11 @@ class MosbiusMatrixConfigurator:
         ttk.Radiobutton(order_selector_frame, text="Orden Columna por Columna (C0R0...C0R23, C1R0...)", variable=self.order_var, value="col_major", command=self.update_bitstream).pack(side="left", padx=6)
 
         self.txt_bitstream = tk.Text(output_frame, height=4, width=70, font=("Consolas", 10), wrap="char")
-        self.txt_bitstream.pack(padx=6, pady=6, fill="both")
+        self.txt_bitstream.pack(padx=6, pady=(6, 2), fill="both")
+
+        ttk.Label(output_frame, text="Valor Hexadecimal (60 nibbles):", font=("Consolas", 9, "bold")).pack(anchor="w", padx=6)
+        self.txt_hex = tk.Text(output_frame, height=2, width=70, font=("Consolas", 10), wrap="char")
+        self.txt_hex.pack(padx=6, pady=(2, 6), fill="both")
 
         self.lbl_stats = ttk.Label(output_frame, text="Total: 240 bits | Conectados (1): 0 | Abiertos (0): 240", font=("Consolas", 9))
         self.lbl_stats.pack(anchor="w", padx=6, pady=4)
@@ -101,28 +106,29 @@ class MosbiusMatrixConfigurator:
         color = "#FF0702" if value else "#FFFFFF"
         self.buttons[row][col].itemconfig(1, fill=color)
 
-    def update_bitstream(self):
+    def _get_bitstream_string(self):
         bits = []
-        active_count = 0
-
         if self.order_var.get() == "row_major":
             for r in range(self.ROWS):
                 for c in range(self.COLS):
-                    val = self.matrix[r][c]
-                    bits.append(str(val))
-                    if val == 1:
-                        active_count += 1
+                    bits.append(str(self.matrix[r][c]))
         else:
             for c in range(self.COLS):
                 for r in range(self.ROWS):
-                    val = self.matrix[r][c]
-                    bits.append(str(val))
-                    if val == 1:
-                        active_count += 1
+                    bits.append(str(self.matrix[r][c]))
+        return "".join(bits)
 
-        stream_str = "".join(bits)
+    def update_bitstream(self):
+        stream_str = self._get_bitstream_string()
+        active_count = stream_str.count("1")
+        hex_value = format(int(stream_str, 2), f"0{len(stream_str) // 4}X") if stream_str else "0"
+
         self.txt_bitstream.delete("1.0", tk.END)
         self.txt_bitstream.insert(tk.END, stream_str)
+
+        self.txt_hex.delete("1.0", tk.END)
+        self.txt_hex.insert(tk.END, f"0x{hex_value}")
+
         self.lbl_stats.config(text=f"Total: 240 bits | Conectados (1): {active_count} | Abiertos (0): {240 - active_count}")
 
     def clear_all(self):
@@ -144,6 +150,12 @@ class MosbiusMatrixConfigurator:
         self.root.clipboard_clear()
         self.root.clipboard_append(content)
         messagebox.showinfo("Copiado", "Bitstream de 240 bits copiado al portapapeles.")
+
+    def copy_hexstream(self):
+        content = self.txt_hex.get("1.0", tk.END).strip()
+        self.root.clipboard_clear()
+        self.root.clipboard_append(content[2:-1])  # Excluye el '0x' al copiar
+        messagebox.showinfo("Copiado", "Valor hexadecimal copiado al portapapeles.")
 
 if __name__ == "__main__":
     app_root = tk.Tk()

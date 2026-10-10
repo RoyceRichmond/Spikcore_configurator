@@ -12,7 +12,7 @@ The upload process is inspired by the [MOSbius project](https://github.com/Jianx
 
 ## Host script
 
-`prog.py` se ejecuta en la computadora host y se conecta a la Raspberry Pi Pico por USB serial, igual que una consola de Thonny.
+`prog.py` se ejecuta en la computadora host y se conecta a la Raspberry Pi Pico por USB serial. El script entra en raw REPL y ejecuta el bloque MicroPython en la Pico, en vez de escribir el valor en la consola interactiva.
 
 Instala la dependencia necesaria:
 
@@ -29,3 +29,5 @@ python prog.py 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789AB --po
 ```
 
 El valor puede incluir `0x` y espacios; el script los normaliza y valida que sean exactamente 60 caracteres hexadecimales.
+
+Si quieres usar la opción de `--program` o `--latchup`, el script también ejecuta el bitstream en la Pico sin depender de que `main.py` esté activo en una sesión previa.

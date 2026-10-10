@@ -79,7 +79,7 @@ class MosbiusMatrixConfigurator:
         order_selector_frame = ttk.Frame(output_frame)
         order_selector_frame.pack(anchor="w", padx=6, pady=4)
         ttk.Radiobutton(order_selector_frame, text="Orden Fila por Fila (R0C0...R0C9, R1C0...)", variable=self.order_var, value="row_major", command=self.update_bitstream).pack(side="left", padx=6)
-        ttk.Radiobutton(order_selector_frame, text="Orden Columna por Columna (C0R0...C0R23, C1R0...)", variable=self.order_var, value="col_major", command=self.update_bitstream).pack(side="left", padx=6)
+        #ttk.Radiobutton(order_selector_frame, text="Orden Columna por Columna (C0R0...C0R23, C1R0...)", variable=self.order_var, value="col_major", command=self.update_bitstream).pack(side="left", padx=6)
 
         self.txt_bitstream = tk.Text(output_frame, height=4, width=70, font=("Consolas", 10), wrap="char")
         self.txt_bitstream.pack(padx=6, pady=(6, 2), fill="both")

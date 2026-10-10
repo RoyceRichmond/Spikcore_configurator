@@ -154,7 +154,7 @@ class MosbiusMatrixConfigurator:
     def copy_hexstream(self):
         content = self.txt_hex.get("1.0", tk.END).strip()
         self.root.clipboard_clear()
-        self.root.clipboard_append(content[2:-1])  # Excluye el '0x' al copiar
+        self.root.clipboard_append(content[2:])  # Excluye el '0x' al copiar
         messagebox.showinfo("Copiado", "Valor hexadecimal copiado al portapapeles.")
 
 if __name__ == "__main__":

@@ -8,3 +8,24 @@ This Repo contains two scripts:
 
 
 The upload process is inspired by the [MOSbius project](https://github.com/Jianxun/MOSbius_MicroPython_Flow/tree/main)
+
+
+## Host script
+
+`prog.py` se ejecuta en la computadora host y se conecta a la Raspberry Pi Pico por USB serial, igual que una consola de Thonny.
+
+Instala la dependencia necesaria:
+
+```bash
+pip install pyserial
+```
+
+Ejemplos de uso:
+
+```bash
+python prog.py 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789AB --port COM8
+python prog.py 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789AB --port COM8 --program
+python prog.py 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789AB --port COM8 --program --latchup
+```
+
+El valor puede incluir `0x` y espacios; el script los normaliza y valida que sean exactamente 60 caracteres hexadecimales.

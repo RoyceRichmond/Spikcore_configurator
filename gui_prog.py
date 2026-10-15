@@ -233,16 +233,16 @@ class MosbiusMatrixConfigurator:
             text="Conectar Todo (Todo en 1 / Rojo)",
             command=self.fill_all,
         ).pack(side="left", padx=6)
-        ttk.Button(
-            control_frame,
-            text="Copiar Bitstream",
-            command=self.copy_bitstream,
-        ).pack(side="right", padx=6)
-        ttk.Button(
-            control_frame,
-            text="Copiar Hexadecimal",
-            command=self.copy_hexstream,
-        ).pack(side="right", padx=6)
+       #tk.Button(
+       #    control_frame,
+       #    text="Copiar Bitstream",
+       #    command=self.copy_bitstream,
+       #).pack(side="right", padx=6)
+       #ttk.Button(
+       #    control_frame,
+       #    text="Copiar Hexadecimal",
+       #    command=self.copy_hexstream,
+       #).pack(side="right", padx=6)
 
         output_frame = ttk.LabelFrame(
             scrollable_frame,

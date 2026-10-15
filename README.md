@@ -3,40 +3,20 @@ The Spikcore has a 24X10 switch matrix, this needs to be reconfigured to make ne
 
 This Repo contains two scripts:
 
-- gui_config.py: This script render a gui with buttons to select which cells connect to which buss and then the ios
+- gui_prog.py: This script render a gui with buttons to select which cells connect to which buss and then the ios and programming
 - main.py: This script is uploadede to a raspberry pi pico, and uses the input from the gui to upload the bitstream and reconfigure switch matrix on the asic.
-
 
 The upload process is inspired by the [MOSbius project](https://github.com/Jianxun/MOSbius_MicroPython_Flow/tree/main)
 
-
-## Host script
-
-`prog.py` se ejecuta en la computadora host y se conecta a la Raspberry Pi Pico por USB serial. El script entra en raw REPL y ejecuta el bloque MicroPython en la Pico, en vez de escribir el valor en la consola interactiva.
-
 ## Aplicación unificada
-
-`gui_prog.py` combina el configurador de matriz de `gui_config.py` con la programación serial de la Pico:
 
 1. Ejecuta `python gui_prog.py`.
 2. Selecciona el puerto COM de la Raspberry Pi Pico y pulsa **Conectar**.
 3. Selecciona las celdas de la matriz para generar el bitstream.
 4. Usa **R Cambiar** para cargar el hexadecimal en la Pico, **P Programar** para transmitirlo y **L Latch-up** para activarlo.
 
-La aplicación mantiene la conexión en raw REPL y muestra en el panel de log la respuesta de la Pico. Requiere `pyserial`:
-
+## Packages
+The program requieres an additional library named pyserial for the serial comunication with the raspberry pi pico
 ```bash
 pip install pyserial
 ```
-
-Ejemplos de uso:
-
-```bash
-python prog.py 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789AB --port COM8
-python prog.py 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789AB --port COM8 --program
-python prog.py 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789AB --port COM8 --program --latchup
-```
-
-El valor puede incluir `0x` y espacios; el script los normaliza y valida que sean exactamente 60 caracteres hexadecimales.
-
-Si quieres usar la opción de `--program` o `--latchup`, el script también ejecuta el bitstream en la Pico sin depender de que `main.py` esté activo en una sesión previa.

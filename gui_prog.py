@@ -12,9 +12,6 @@ except ImportError:
     serial = None
     list_ports = None
 
-from gui_config import MosbiusMatrixConfigurator
-
-
 HEX_LENGTH = 60
 BAUDRATE = 115200
 
@@ -141,6 +138,248 @@ def build_remote_script(hex_value, action):
     )
 
 
+class MosbiusMatrixConfigurator:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Mosbius Crossbar Configurator (24x10)")
+        self.root.resizable(True, True)
+
+        self.ROWS = 10
+        self.COLS = 24
+
+        self.matrix = [[0 for _ in range(self.COLS)] for _ in range(self.ROWS)]
+        self.buttons = [[None for _ in range(self.COLS)] for _ in range(self.ROWS)]
+
+        self._build_ui()
+        self.update_bitstream()
+
+    def _build_ui(self):
+        main_canvas = tk.Canvas(self.root, highlightthickness=0)
+        v_scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
+        scrollable_frame = ttk.Frame(main_canvas)
+        self.scrollable_frame = scrollable_frame
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda event: main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+        )
+
+        main_canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        main_canvas.configure(yscrollcommand=v_scrollbar.set)
+
+        v_scrollbar.pack(side="right", fill="y")
+        main_canvas.pack(side="left", fill="both", expand=True)
+
+        matrix_frame = ttk.LabelFrame(
+            scrollable_frame,
+            text="Matriz de Interconexión (24 filas × 10 columnas)",
+        )
+        matrix_frame.pack(padx=16, pady=12)
+
+        ttk.Label(
+            matrix_frame,
+            text="R\\C",
+            font=("Consolas", 10, "bold"),
+        ).grid(row=0, column=0, padx=4, pady=4)
+        for column in range(self.COLS):
+            ttk.Label(
+                matrix_frame,
+                text="C{}".format(column),
+                font=("Consolas", 10, "bold"),
+            ).grid(row=0, column=column + 1, padx=3, pady=4)
+
+        for row in range(self.ROWS):
+            ttk.Label(
+                matrix_frame,
+                text="R{:02d}".format(row),
+                font=("Consolas", 9, "bold"),
+            ).grid(row=row + 1, column=0, padx=6, pady=2)
+            for column in range(self.COLS):
+                button = tk.Canvas(
+                    matrix_frame,
+                    width=18,
+                    height=18,
+                    highlightthickness=0,
+                    bd=0,
+                    cursor="hand2",
+                )
+                button.create_oval(
+                    2,
+                    2,
+                    16,
+                    16,
+                    fill="#FFFFFF",
+                    outline="#555555",
+                    width=1,
+                )
+                button.bind(
+                    "<Button-1>",
+                    lambda event, selected_row=row, selected_column=column:
+                    self.toggle_cell(selected_row, selected_column),
+                )
+                button.grid(row=row + 1, column=column + 1, padx=2, pady=2)
+                self.buttons[row][column] = button
+
+        control_frame = ttk.Frame(scrollable_frame)
+        control_frame.pack(fill="x", padx=16, pady=8)
+
+        ttk.Button(
+            control_frame,
+            text="Limpiar Todo (Todo en 0 / Blanco)",
+            command=self.clear_all,
+        ).pack(side="left", padx=6)
+        ttk.Button(
+            control_frame,
+            text="Conectar Todo (Todo en 1 / Rojo)",
+            command=self.fill_all,
+        ).pack(side="left", padx=6)
+        ttk.Button(
+            control_frame,
+            text="Copiar Bitstream",
+            command=self.copy_bitstream,
+        ).pack(side="right", padx=6)
+        ttk.Button(
+            control_frame,
+            text="Copiar Hexadecimal",
+            command=self.copy_hexstream,
+        ).pack(side="right", padx=6)
+
+        output_frame = ttk.LabelFrame(
+            scrollable_frame,
+            text="Bitstream Generado (240 bits: 1=Conectado/Rojo, 0=Abierto/Blanco)",
+        )
+        output_frame.pack(fill="x", padx=16, pady=10)
+
+        self.order_var = tk.StringVar(value="row_major")
+        order_selector_frame = ttk.Frame(output_frame)
+        order_selector_frame.pack(anchor="w", padx=6, pady=4)
+        ttk.Radiobutton(
+            order_selector_frame,
+            text="Orden Fila por Fila (R0C0...R0C9, R1C0...)",
+            variable=self.order_var,
+            value="row_major",
+            command=self.update_bitstream,
+        ).pack(side="left", padx=6)
+
+        self.txt_bitstream = tk.Text(
+            output_frame,
+            height=4,
+            width=70,
+            font=("Consolas", 10),
+            wrap="char",
+        )
+        self.txt_bitstream.pack(padx=6, pady=(6, 2), fill="both")
+
+        ttk.Label(
+            output_frame,
+            text="Valor Hexadecimal (60 nibbles):",
+            font=("Consolas", 9, "bold"),
+        ).pack(anchor="w", padx=6)
+        self.txt_hex = tk.Text(
+            output_frame,
+            height=2,
+            width=70,
+            font=("Consolas", 10),
+            wrap="char",
+        )
+        self.txt_hex.pack(padx=6, pady=(2, 6), fill="both")
+
+        self.lbl_stats = ttk.Label(
+            output_frame,
+            text="Total: 240 bits | Conectados (1): 0 | Abiertos (0): 240",
+            font=("Consolas", 9),
+        )
+        self.lbl_stats.pack(anchor="w", padx=6, pady=4)
+
+        self.root.bind_all(
+            "<MouseWheel>",
+            lambda event: main_canvas.yview_scroll(
+                int(-1 * (event.delta / 120)),
+                "units",
+            ),
+        )
+        self.root.bind_all(
+            "<Button-4>",
+            lambda event: main_canvas.yview_scroll(-1, "units"),
+        )
+        self.root.bind_all(
+            "<Button-5>",
+            lambda event: main_canvas.yview_scroll(1, "units"),
+        )
+
+    def toggle_cell(self, row, column):
+        self.matrix[row][column] = 1 - self.matrix[row][column]
+        self._update_button_color(row, column)
+        self.update_bitstream()
+
+    def _update_button_color(self, row, column):
+        color = "#FF0702" if self.matrix[row][column] else "#FFFFFF"
+        self.buttons[row][column].itemconfig(1, fill=color)
+
+    def _get_bitstream_string(self):
+        bits = []
+        if self.order_var.get() == "row_major":
+            for row in range(self.ROWS):
+                for column in range(self.COLS):
+                    bits.append(str(self.matrix[row][column]))
+        else:
+            for column in range(self.COLS):
+                for row in range(self.ROWS):
+                    bits.append(str(self.matrix[row][column]))
+        return "".join(bits)
+
+    def update_bitstream(self):
+        stream_str = self._get_bitstream_string()
+        active_count = stream_str.count("1")
+        hex_value = format(
+            int(stream_str, 2),
+            "0{}X".format(len(stream_str) // 4),
+        ) if stream_str else "0"
+
+        self.txt_bitstream.delete("1.0", tk.END)
+        self.txt_bitstream.insert(tk.END, stream_str)
+        self.txt_hex.delete("1.0", tk.END)
+        self.txt_hex.insert(tk.END, "0x{}".format(hex_value))
+        self.lbl_stats.config(
+            text="Total: 240 bits | Conectados (1): {} | Abiertos (0): {}".format(
+                active_count,
+                240 - active_count,
+            ),
+        )
+
+    def clear_all(self):
+        for row in range(self.ROWS):
+            for column in range(self.COLS):
+                self.matrix[row][column] = 0
+                self._update_button_color(row, column)
+        self.update_bitstream()
+
+    def fill_all(self):
+        for row in range(self.ROWS):
+            for column in range(self.COLS):
+                self.matrix[row][column] = 1
+                self._update_button_color(row, column)
+        self.update_bitstream()
+
+    def copy_bitstream(self):
+        content = self.txt_bitstream.get("1.0", tk.END).strip()
+        self.root.clipboard_clear()
+        self.root.clipboard_append(content)
+        messagebox.showinfo(
+            "Copiado",
+            "Bitstream de 240 bits copiado al portapapeles.",
+        )
+
+    def copy_hexstream(self):
+        content = self.txt_hex.get("1.0", tk.END).strip()
+        self.root.clipboard_clear()
+        self.root.clipboard_append(content[2:])
+        messagebox.showinfo(
+            "Copiado",
+            "Valor hexadecimal copiado al portapapeles.",
+        )
+
+
 class SpikcoreGui(MosbiusMatrixConfigurator):
     def __init__(self, root):
         self.serial_connection = None
@@ -162,8 +401,11 @@ class SpikcoreGui(MosbiusMatrixConfigurator):
         self._generated_hex = generated_hex
 
     def _build_serial_controls(self):
-        frame = ttk.LabelFrame(self.root, text="Programación Raspberry Pi Pico")
-        frame.pack(side="bottom", fill="x", padx=8, pady=8)
+        frame = ttk.LabelFrame(
+            self.scrollable_frame,
+            text="Programación Raspberry Pi Pico",
+        )
+        frame.pack(fill="x", padx=16, pady=(0, 12))
 
         ttk.Label(frame, text="Puerto:").grid(row=0, column=0, padx=4, pady=4)
         self.port_var = tk.StringVar()

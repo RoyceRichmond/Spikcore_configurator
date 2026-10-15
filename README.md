@@ -14,7 +14,16 @@ The upload process is inspired by the [MOSbius project](https://github.com/Jianx
 
 `prog.py` se ejecuta en la computadora host y se conecta a la Raspberry Pi Pico por USB serial. El script entra en raw REPL y ejecuta el bloque MicroPython en la Pico, en vez de escribir el valor en la consola interactiva.
 
-Instala la dependencia necesaria:
+## Aplicación unificada
+
+`gui_prog.py` combina el configurador de matriz de `gui_config.py` con la programación serial de la Pico:
+
+1. Ejecuta `python gui_prog.py`.
+2. Selecciona el puerto COM de la Raspberry Pi Pico y pulsa **Conectar**.
+3. Selecciona las celdas de la matriz para generar el bitstream.
+4. Usa **R Cambiar** para cargar el hexadecimal en la Pico, **P Programar** para transmitirlo y **L Latch-up** para activarlo.
+
+La aplicación mantiene la conexión en raw REPL y muestra en el panel de log la respuesta de la Pico. Requiere `pyserial`:
 
 ```bash
 pip install pyserial

@@ -1,0 +1,38 @@
+#Digilent WaveForms Logic Analyzer SPI
+#Device Name: Discovery3
+#Serial Number: SN:210415BF88AC
+#Date Time: 2026-10-18 21:31:44.000.000.000
+
+h80
+h81
+h01
+h10
+h08
+h10
+h12
+h44
+h42
+h01
+h08
+h00
+h08
+h00
+h94
+h20
+h10
+h04
+h00
+h40
+h80
+h42
+h04
+h10
+h08
+h40
+h04
+h00
+h84
+h84
+
+
+0x808101100810124442010800080094201004004080420410084004008484

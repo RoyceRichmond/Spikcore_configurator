@@ -72,7 +72,7 @@ STATE_LED = 25
 START_PIN = 7
 
 CLK_PERIOD_US = 10
-NUMBER_OF_BITS = 240
+NUMBER_OF_BITS = 250
 DEBOUNCE_MS = 30
 
 # -----------------------------
@@ -141,13 +141,13 @@ pixels_show()
 # ENTRADA DINÁMICA INICIAL (DESDE LA PC)
 # -----------------------------
 print("----------------------------------------")
-print("Esperando valor hexadecimal de 240 bits...")
+print("Esperando valor hexadecimal de 250 bits...")
 print("----------------------------------------")
 
-variable = input("Ingresa el string hex (60 caracteres): ").strip()
+variable = input("Ingresa el string hex (64 caracteres): ").strip()
 
-if len(variable) != 60:
-    print("¡Advertencia! El valor no mide 60 caracteres. Asegúrate de que sean 240 bits.")
+if len(variable) != 64:
+    print("¡Advertencia! El valor no mide 64 caracteres. Asegúrate de que sean 250 bits más 6 bits de relleno.")
 
 # Se guarda el primer valor en memoria para usarlo de inmediato
 variable_bytes = bytes.fromhex(variable)
@@ -155,7 +155,7 @@ print("¡Valor inicial cargado y convertido a bytes con éxito!\n")
 
 while True:
     print("\n--- MENÚ DE CONTROL ---")
-    print("R - Ingresar / Cambiar string hexadecimal (240 bits)")
+    print("R - Ingresar / Cambiar string hexadecimal (250 bits)")
     print("P - Programar y enviar bitstream actual")
     print("L - Activar Latch-up (Verde)")
     
@@ -166,12 +166,12 @@ while True:
         pixels_fill(BLACK)
         pixels_show()
         print("\n----------------------------------------")
-        print("Ingresa el nuevo valor hexadecimal de 240 bits:")
+        print("Ingresa el nuevo valor hexadecimal de 250 bits:")
         print("----------------------------------------")
-        variable_hex = input("String hex (60 caracteres): ").strip()
+        variable_hex = input("String hex (64 caracteres): ").strip()
         
-        if len(variable_hex) != 60:
-            print("⚠️ ¡Advertencia! El valor no mide 60 caracteres exactos.")
+        if len(variable_hex) != 64:
+            print("⚠️ ¡Advertencia! El valor no mide 64 caracteres exactos.")
         
         try:
             variable_bytes = bytes.fromhex(variable_hex)

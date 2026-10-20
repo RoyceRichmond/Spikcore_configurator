@@ -12,7 +12,14 @@ except ImportError:
     serial = None
     list_ports = None
 
-HEX_LENGTH = 60
+HEX_LENGTH = 64
+NUMBER_OF_BITS = 250
+SYNAPSE_BITS = 6
+FIXED_TRAILER = "1011"
+IO_NUMBERS = (
+    45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34,
+    30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19,
+)
 BAUDRATE = 115200
 
 
@@ -21,8 +28,8 @@ def normalize_hex(value):
     if value.lower().startswith("0x"):
         value = value[2:]
     if len(value) != HEX_LENGTH:
-        raise ValueError("El valor debe tener exactamente 60 caracteres hexadecimales.")
-    if not re.fullmatch(r"[0-9a-fA-F]{60}", value):
+        raise ValueError("El valor debe tener exactamente 64 caracteres hexadecimales.")
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", value):
         raise ValueError("El valor contiene caracteres que no son hexadecimales.")
     return value.upper()
 
@@ -92,7 +99,7 @@ def build_remote_script(hex_value, action):
         EN_PIN = 4
         STATE_LED = 25
         CLK_PERIOD_US = 10
-        NUMBER_OF_BITS = 240
+        NUMBER_OF_BITS = 250
 
         data = Pin(DATA_PIN, Pin.OUT, value=0)
         clk = Pin(CLK_PIN, Pin.OUT, value=0)
@@ -144,11 +151,13 @@ class MosbiusMatrixConfigurator:
         self.root.title("Mosbius Crossbar Configurator (24x10)")
         self.root.resizable(True, True)
 
-        self.ROWS = 10
-        self.COLS = 24
+        self.ROWS = 24
+        self.COLS = 10
 
         self.matrix = [[0 for _ in range(self.COLS)] for _ in range(self.ROWS)]
         self.buttons = [[None for _ in range(self.COLS)] for _ in range(self.ROWS)]
+        self.synapses = [0 for _ in range(SYNAPSE_BITS)]
+        self.synapse_buttons = [None for _ in range(SYNAPSE_BITS)]
 
         self._build_ui()
         self.update_bitstream()
@@ -191,7 +200,7 @@ class MosbiusMatrixConfigurator:
         for row in range(self.ROWS):
             ttk.Label(
                 matrix_frame,
-                text="R{:02d}".format(row),
+                text="I/O-{}".format(IO_NUMBERS[row]),
                 font=("Consolas", 9, "bold"),
             ).grid(row=row + 1, column=0, padx=6, pady=2)
             for column in range(self.COLS):
@@ -220,6 +229,43 @@ class MosbiusMatrixConfigurator:
                 button.grid(row=row + 1, column=column + 1, padx=2, pady=2)
                 self.buttons[row][column] = button
 
+        synapse_frame = ttk.LabelFrame(
+            scrollable_frame,
+            text="Sinapsis (rojo excitatoria, blanco inhibitoria)",
+        )
+        synapse_frame.pack(fill="x", padx=16, pady=(4, 8))
+        for index in range(SYNAPSE_BITS):
+            synapse = tk.Canvas(
+                synapse_frame,
+                width=24,
+                height=24,
+                highlightthickness=0,
+                bd=0,
+                cursor="hand2",
+            )
+            synapse.create_oval(
+                3,
+                3,
+                21,
+                21,
+                fill="#FFFFFF",
+                outline="#555555",
+                width=1,
+            )
+            synapse.bind(
+                "<Button-1>",
+                lambda event, selected_index=index:
+                self.toggle_synapse(selected_index),
+            )
+            synapse.grid(row=0, column=index, padx=10, pady=(6, 2))
+            ttk.Label(synapse_frame, text="S{}".format(index)).grid(
+                row=1,
+                column=index,
+                padx=10,
+                pady=(0, 6),
+            )
+            self.synapse_buttons[index] = synapse
+
         control_frame = ttk.Frame(scrollable_frame)
         control_frame.pack(fill="x", padx=16, pady=8)
 
@@ -246,7 +292,7 @@ class MosbiusMatrixConfigurator:
 
         output_frame = ttk.LabelFrame(
             scrollable_frame,
-            text="Bitstream Generado (240 bits: 1=Conectado/Rojo, 0=Abierto/Blanco)",
+            text="Bitstream Generado (250 bits: matriz + 6 sinapsis + 1011)",
         )
         output_frame.pack(fill="x", padx=16, pady=10)
 
@@ -272,7 +318,7 @@ class MosbiusMatrixConfigurator:
 
         ttk.Label(
             output_frame,
-            text="Valor Hexadecimal (60 nibbles):",
+            text="Valor Hexadecimal (64 caracteres, 250 bits + 6 bits de relleno):",
             font=("Consolas", 9, "bold"),
         ).pack(anchor="w", padx=6)
         self.txt_hex = tk.Text(
@@ -286,7 +332,7 @@ class MosbiusMatrixConfigurator:
 
         self.lbl_stats = ttk.Label(
             output_frame,
-            text="Total: 240 bits | Conectados (1): 0 | Abiertos (0): 240",
+            text="Total: 250 bits | Activos (1): 2 | Inactivos (0): 248",
             font=("Consolas", 9),
         )
         self.lbl_stats.pack(anchor="w", padx=6, pady=4)
@@ -312,6 +358,12 @@ class MosbiusMatrixConfigurator:
         self._update_button_color(row, column)
         self.update_bitstream()
 
+    def toggle_synapse(self, index):
+        self.synapses[index] = 1 - self.synapses[index]
+        color = "#FF0702" if self.synapses[index] else "#FFFFFF"
+        self.synapse_buttons[index].itemconfig(1, fill=color)
+        self.update_bitstream()
+
     def _update_button_color(self, row, column):
         color = "#FF0702" if self.matrix[row][column] else "#FFFFFF"
         self.buttons[row][column].itemconfig(1, fill=color)
@@ -326,14 +378,15 @@ class MosbiusMatrixConfigurator:
             for column in range(self.COLS):
                 for row in range(self.ROWS):
                     bits.append(str(self.matrix[row][column]))
-        return "".join(bits)
+        return "".join(bits) + "".join(str(value) for value in self.synapses) + FIXED_TRAILER
 
     def update_bitstream(self):
         stream_str = self._get_bitstream_string()
         active_count = stream_str.count("1")
+        payload_bits = stream_str + "0" * (8 - (len(stream_str) % 8))
         hex_value = format(
-            int(stream_str, 2),
-            "0{}X".format(len(stream_str) // 4),
+            int(payload_bits, 2),
+            "0{}X".format(len(payload_bits) // 4),
         ) if stream_str else "0"
 
         self.txt_bitstream.delete("1.0", tk.END)
@@ -341,9 +394,9 @@ class MosbiusMatrixConfigurator:
         self.txt_hex.delete("1.0", tk.END)
         self.txt_hex.insert(tk.END, "0x{}".format(hex_value))
         self.lbl_stats.config(
-            text="Total: 240 bits | Conectados (1): {} | Abiertos (0): {}".format(
+            text="Total: 250 bits | Activos (1): {} | Inactivos (0): {}".format(
                 active_count,
-                240 - active_count,
+                NUMBER_OF_BITS - active_count,
             ),
         )
 
@@ -352,6 +405,9 @@ class MosbiusMatrixConfigurator:
             for column in range(self.COLS):
                 self.matrix[row][column] = 0
                 self._update_button_color(row, column)
+        for index in range(SYNAPSE_BITS):
+            self.synapses[index] = 0
+            self.synapse_buttons[index].itemconfig(1, fill="#FFFFFF")
         self.update_bitstream()
 
     def fill_all(self):
@@ -359,6 +415,9 @@ class MosbiusMatrixConfigurator:
             for column in range(self.COLS):
                 self.matrix[row][column] = 1
                 self._update_button_color(row, column)
+        for index in range(SYNAPSE_BITS):
+            self.synapses[index] = 1
+            self.synapse_buttons[index].itemconfig(1, fill="#FF0702")
         self.update_bitstream()
 
     def copy_bitstream(self):
@@ -367,7 +426,7 @@ class MosbiusMatrixConfigurator:
         self.root.clipboard_append(content)
         messagebox.showinfo(
             "Copiado",
-            "Bitstream de 240 bits copiado al portapapeles.",
+            "Bitstream de 250 bits copiado al portapapeles.",
         )
 
     def copy_hexstream(self):
@@ -420,7 +479,7 @@ class SpikcoreGui(MosbiusMatrixConfigurator):
         self.status_var = tk.StringVar(value="Desconectado")
         ttk.Label(frame, textvariable=self.status_var).grid(row=0, column=5, padx=8, sticky="w")
 
-        ttk.Label(frame, text="Hex (240 bits):").grid(row=1, column=0, padx=4, pady=4)
+        ttk.Label(frame, text="Hex (250 bits):").grid(row=1, column=0, padx=4, pady=4)
         self.hex_var = tk.StringVar()
         self.hex_entry = ttk.Entry(frame, textvariable=self.hex_var, width=62)
         self.hex_entry.grid(row=1, column=1, columnspan=4, padx=4, pady=4, sticky="ew")
